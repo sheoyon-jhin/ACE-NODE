@@ -1,0 +1,7 @@
+*.egg-info/
+.installed.cfg
+*.egg
+*__pycache__*
+.vscode
+build
+dist

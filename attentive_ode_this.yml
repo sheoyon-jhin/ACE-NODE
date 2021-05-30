@@ -1,0 +1,32 @@
+name: attentive
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - numpy=1.19.2
+  - numpy-base=1.19.2
+  - pillow=8.0.1
+  - pip=20.3.3
+  - pycparser=2.20
+  - python=3.8.5
+  - python_abi=3.8
+  - pytorch=1.7.1
+  - pytorch-cpu=1.6.0
+  - setuptools=51.0.0
+  - torchdiffeq=0.1.1
+  - torchvision=0.8.2
+  - pip:
+    - argparse==1.4.0
+    - ipdb==0.13.4
+    - ipython==7.19.0
+    - keras-preprocessing==1.1.2
+    - matplotlib==3.3.3
+    - pandas==1.1.5
+    - scikit-learn==0.24.0
+    - scipy==1.5.4
+    - sklearn==0.0
+    - tqdm==4.55.0
+    
+    
+
