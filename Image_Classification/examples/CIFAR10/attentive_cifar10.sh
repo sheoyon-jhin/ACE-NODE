@@ -21,3 +21,4 @@ done
 
 
 
+#python3 attentiveODE_CIFAR10_TRAIN.py --seed 2021 --nepochs 150 --regul l2 --lam 1e-3 --lr 0.01 --tol 1e-5 --adjoint False 

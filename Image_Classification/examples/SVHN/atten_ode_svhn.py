@@ -17,22 +17,30 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 ## written by sheoyon
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--network', type=str, choices=['resnet', 'odenet'], default='odenet')
-parser.add_argument('--tol', type=float, default=1e-3)
-parser.add_argument('--adjoint', type=eval, default=False, choices=[True, False])  # True : ADJOINT
-parser.add_argument('--downsampling-method', type=str, default='conv', choices=['conv', 'res'])
-parser.add_argument('--nepochs', type=int, default=92)
-parser.add_argument('--data_aug', type=eval, default=True, choices=[True, False])
-parser.add_argument('--lr', type=float, default=0.01)
-parser.add_argument('--batch_size', type=int, default=128)
-parser.add_argument('--test_batch_size', type=int, default=1000)
-parser.add_argument('--regul', type = str, choices =['none', 'l1', 'l2'], default = 'none') # for attentive layer regularization
-parser.add_argument('--lam', type = float, default = 1e-2)
-parser.add_argument('--seed', type=int, default=2021)
+parser.add_argument(
+    "--network", type=str, choices=["resnet", "odenet"], default="odenet"
+)
+parser.add_argument("--tol", type=float, default=1e-3)
+parser.add_argument(
+    "--adjoint", type=eval, default=False, choices=[True, False]
+)  # True : ADJOINT
+parser.add_argument(
+    "--downsampling-method", type=str, default="conv", choices=["conv", "res"]
+)
+parser.add_argument("--nepochs", type=int, default=92)
+parser.add_argument("--data_aug", type=eval, default=True, choices=[True, False])
+parser.add_argument("--lr", type=float, default=0.01)
+parser.add_argument("--batch_size", type=int, default=128)
+parser.add_argument("--test_batch_size", type=int, default=1000)
+parser.add_argument(
+    "--regul", type=str, choices=["none", "l1", "l2"], default="none"
+)  # for attentive layer regularization
+parser.add_argument("--lam", type=float, default=1e-2)
+parser.add_argument("--seed", type=int, default=2021)
 
-parser.add_argument('--save', type=str, default='./experiment1')
-parser.add_argument('--debug', action='store_true')
-parser.add_argument('--gpu', type=int, default=0)
+parser.add_argument("--save", type=str, default="./experiment1")
+parser.add_argument("--debug", action="store_true")
+parser.add_argument("--gpu", type=int, default=0)
 args = parser.parse_args()
 
 if args.adjoint:
@@ -47,7 +55,9 @@ else:
 
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
+    return nn.Conv2d(
+        in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False
+    )
 
 
 def conv1x1(in_planes, out_planes, stride=1):
@@ -62,7 +72,7 @@ def norm(dim):
 class Downsampling(nn.Module):
     def __init__(self, dim):
         super(Downsampling, self).__init__()
-        self.conv1 = nn.Conv2d(3, dim, kernel_size = 3, stride  = 1, padding = 1)
+        self.conv1 = nn.Conv2d(3, dim, kernel_size=3, stride=1, padding=1)
         self.norm1 = norm(dim)
         self.relu1 = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(dim, dim, 4, 2, 1)
@@ -83,7 +93,6 @@ class Downsampling(nn.Module):
 
 
 class atten_init(nn.Module):
-
     def __init__(self, dim):
         super(atten_init, self).__init__()
         self.norm1 = norm(dim)
@@ -135,13 +144,29 @@ class ResBlock(nn.Module):
 
 
 class ConcatConv2d(nn.Module):
-
-    def __init__(self, dim_in, dim_out, ksize=3, stride=1, padding=0, dilation=1, groups=1, bias=True, transpose=False):
+    def __init__(
+        self,
+        dim_in,
+        dim_out,
+        ksize=3,
+        stride=1,
+        padding=0,
+        dilation=1,
+        groups=1,
+        bias=True,
+        transpose=False,
+    ):
         super(ConcatConv2d, self).__init__()
         module = nn.ConvTranspose2d if transpose else nn.Conv2d
         self._layer = module(
-            dim_in + 1, dim_out, kernel_size=ksize, stride=stride, padding=padding, dilation=dilation, groups=groups,
-            bias=bias
+            dim_in + 1,
+            dim_out,
+            kernel_size=ksize,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            groups=groups,
+            bias=bias,
         )
 
     def forward(self, t, x):
@@ -151,7 +176,6 @@ class ConcatConv2d(nn.Module):
 
 
 class ODEfunc(nn.Module):
-
     def __init__(self, dim):
         super(ODEfunc, self).__init__()
         self.norm1 = norm(dim)
@@ -180,7 +204,7 @@ class ODEfunc(nn.Module):
         a_0 = x[size:]
 
         a_s = self.sigmoid1(a_0)
-        h_ = torch.mul(h_0, a_s)  
+        h_ = torch.mul(h_0, a_s)
 
         self.nfe += 1
         self.time = t
@@ -205,7 +229,6 @@ class ODEfunc(nn.Module):
 
 
 class ODEBlock(nn.Module):
-
     def __init__(self, odefunc, atten_init):
         super(ODEBlock, self).__init__()
         self.odefunc = odefunc
@@ -217,8 +240,10 @@ class ODEBlock(nn.Module):
         self.integration_time = self.integration_time.type_as(x)
         a_0 = self.atten_init(x)
 
-        x_0 = torch.cat([x, a_0])  
-        out = odeint(self.odefunc, x_0, self.integration_time, rtol=args.tol, atol=args.tol)
+        x_0 = torch.cat([x, a_0])
+        out = odeint(
+            self.odefunc, x_0, self.integration_time, rtol=args.tol, atol=args.tol
+        )
 
         return out[1]
 
@@ -232,7 +257,6 @@ class ODEBlock(nn.Module):
 
 
 class Flatten(nn.Module):
-
     def __init__(self):
         super(Flatten, self).__init__()
 
@@ -261,43 +285,63 @@ class RunningAverageMeter(object):
 
 
 def get_svhn_loaders(data_aug=False, batch_size=128, test_batch_size=1000, perc=1.0):
-    
-    if data_aug:
-        transform_train = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.ToTensor(),
-        ])
-    else:
-        transform_train = transforms.Compose([
-            transforms.ToTensor(),
-        ])
 
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-    ])
-    
+    if data_aug:
+        transform_train = transforms.Compose(
+            [
+                transforms.RandomCrop(32, padding=4),
+                transforms.ToTensor(),
+            ]
+        )
+    else:
+        transform_train = transforms.Compose(
+            [
+                transforms.ToTensor(),
+            ]
+        )
+
+    transform_test = transforms.Compose(
+        [
+            transforms.ToTensor(),
+        ]
+    )
+
     train_loader = DataLoader(
-        datasets.SVHN(root='.data/', split='train', download=True, transform=transform_train), batch_size=batch_size,
-        shuffle=True, num_workers=1, drop_last=True
+        datasets.SVHN(
+            root=".data/", split="train", download=True, transform=transform_train
+        ),
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=1,
+        drop_last=True,
     )
 
     train_eval_loader = DataLoader(
-        datasets.SVHN(root='.data/', split='extra', download=True, transform=transform_test),
-        batch_size=test_batch_size, shuffle=False, num_workers=1, drop_last=True
+        datasets.SVHN(
+            root=".data/", split="extra", download=True, transform=transform_test
+        ),
+        batch_size=test_batch_size,
+        shuffle=False,
+        num_workers=1,
+        drop_last=True,
     )
 
     test_loader = DataLoader(
-        datasets.SVHN(root='.data/', split='test', download=True, transform=transform_test),
-        batch_size=test_batch_size, shuffle=False, num_workers=1, drop_last=True
+        datasets.SVHN(
+            root=".data/", split="test", download=True, transform=transform_test
+        ),
+        batch_size=test_batch_size,
+        shuffle=False,
+        num_workers=1,
+        drop_last=True,
     )
 
     return train_loader, test_loader, train_eval_loader
 
 
-
 def inf_generator(iterable):
     """Allows training with DataLoaders in a single infinite loop:
-        for i, (x, y) in enumerate(inf_generator(train_loader)):
+    for i, (x, y) in enumerate(inf_generator(train_loader)):
     """
     iterator = iterable.__iter__()
     while True:
@@ -307,7 +351,9 @@ def inf_generator(iterable):
             iterator = iterable.__iter__()
 
 
-def learning_rate_with_decay(batch_size, batch_denom, batches_per_epoch, boundary_epochs, decay_rates):
+def learning_rate_with_decay(
+    batch_size, batch_denom, batches_per_epoch, boundary_epochs, decay_rates
+):
     initial_learning_rate = args.lr * batch_size / batch_denom
 
     boundaries = [int(batches_per_epoch * epoch) for epoch in boundary_epochs]
@@ -328,7 +374,7 @@ def one_hot(x, K):
 def accuracy(model, dataset_loader):
     total_correct = 0
     for x, y in dataset_loader:
-        
+
         x = x.to(device)
         y = one_hot(np.array(y.numpy()), 10)
         size = x.shape
@@ -350,7 +396,9 @@ def makedirs(dirname):
         os.makedirs(dirname)
 
 
-def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True, debug=False):
+def get_logger(
+    logpath, filepath, package_files=[], displaying=True, saving=True, debug=False
+):
     logger = logging.getLogger()
     if debug:
         level = logging.DEBUG
@@ -377,43 +425,53 @@ def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True
     return logger
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     randomSeed = args.seed
     torch.manual_seed(randomSeed)
     torch.cuda.manual_seed(randomSeed)
-    torch.cuda.manual_seed_all(randomSeed) # if use multi-GPU
+    torch.cuda.manual_seed_all(randomSeed)  # if use multi-GPU
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     np.random.seed(randomSeed)
     random.seed(randomSeed)
 
-
     makedirs(args.save)
 
-    logger = get_logger(logpath=os.path.join(args.save, 'logs'), filepath=os.path.abspath(__file__))
-    
+    logger = get_logger(
+        logpath=os.path.join(args.save, "logs"), filepath=os.path.abspath(__file__)
+    )
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    is_odenet = args.network == 'odenet'
-    is_method = args.downsampling_method == 'conv'
-    
-    if args.downsampling_method == 'conv':
+    is_odenet = args.network == "odenet"
+    is_method = args.downsampling_method == "conv"
+
+    if args.downsampling_method == "conv":
         downsampling_layers = [Downsampling(64)]  ## h(0) ######## minju shape
-    elif args.downsampling_method == 'res':
+    elif args.downsampling_method == "res":
         downsampling_layers = [
             nn.Conv2d(3, 64, 3, 1),
             ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
-            ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2))
+            ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
         ]
 
-    feature_layers = [ODEBlock(ODEfunc(64), atten_init(64))] if is_odenet else [ResBlock(64, 64) for _ in range(6)]
-    fc_layers = [norm(64), nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1)), Flatten(), nn.Linear(64, 10)]
+    feature_layers = (
+        [ODEBlock(ODEfunc(64), atten_init(64))]
+        if is_odenet
+        else [ResBlock(64, 64) for _ in range(6)]
+    )
+    fc_layers = [
+        norm(64),
+        nn.ReLU(inplace=True),
+        nn.AdaptiveAvgPool2d((1, 1)),
+        Flatten(),
+        nn.Linear(64, 10),
+    ]
 
     model = nn.Sequential(*downsampling_layers, *feature_layers, *fc_layers).to(device)
     logger.info(model)
-    logger.info('Number of parameters: {}'.format(count_parameters(model)))  
+    logger.info("Number of parameters: {}".format(count_parameters(model)))
     criterion = nn.CrossEntropyLoss().to(device)
 
     train_loader, test_loader, train_eval_loader = get_svhn_loaders(
@@ -424,8 +482,11 @@ if __name__ == '__main__':
     batches_per_epoch = len(train_loader)
 
     lr_fn = learning_rate_with_decay(
-        args.batch_size, batch_denom=64, batches_per_epoch=batches_per_epoch, boundary_epochs=[60, 100, 140],
-        decay_rates=[1, 0.1, 0.01, 0.001]
+        args.batch_size,
+        batch_denom=64,
+        batches_per_epoch=batches_per_epoch,
+        boundary_epochs=[60, 100, 140],
+        decay_rates=[1, 0.1, 0.01, 0.001],
     )
 
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
@@ -438,7 +499,7 @@ if __name__ == '__main__':
     for itr in range(args.nepochs * batches_per_epoch):
 
         for param_group in optimizer.param_groups:
-            param_group['lr'] = lr_fn(itr)
+            param_group["lr"] = lr_fn(itr)
 
         optimizer.zero_grad()
 
@@ -458,9 +519,9 @@ if __name__ == '__main__':
             loss = loss_task
         else:
             if args.regul == "l1":
-                theta_g = torch.norm(logits_a, p = 1)
+                theta_g = torch.norm(logits_a, p=1)
             elif args.regul == "l2":
-                theta_g = torch.norm(logits_a, p = 2)
+                theta_g = torch.norm(logits_a, p=2)
             loss = loss_task + theta_g * args.lam
 
         if is_odenet:
@@ -485,12 +546,21 @@ if __name__ == '__main__':
                 train_acc = accuracy(model, train_eval_loader)
                 val_acc = accuracy(model, test_loader)
                 if val_acc > best_acc:
-                    torch.save({'state_dict': model.state_dict(), 'args': args}, os.path.join(args.save, 'model.pth'))
+                    torch.save(
+                        {"state_dict": model.state_dict(), "args": args},
+                        os.path.join(args.save, "model.pth"),
+                    )
                     best_acc = val_acc
                 logger.info(
                     "Epoch {:04d} | Time {:.3f} ({:.3f}) | NFE-F {:.1f} | NFE-B {:.1f} | "
                     "Train Loss {:.4f} | Train Acc {:.4f} | Test Acc {:.4f}".format(
-                        itr // batches_per_epoch, batch_time_meter.val, batch_time_meter.avg, f_nfe_meter.avg,
-                        b_nfe_meter.avg, loss, train_acc, val_acc
+                        itr // batches_per_epoch,
+                        batch_time_meter.val,
+                        batch_time_meter.avg,
+                        f_nfe_meter.avg,
+                        b_nfe_meter.avg,
+                        loss,
+                        train_acc,
+                        val_acc,
                     )
                 )

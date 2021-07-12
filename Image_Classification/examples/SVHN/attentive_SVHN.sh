@@ -20,3 +20,6 @@ do
         done
     done 
 done
+
+# python3 -u atten_ode_svhn.py --seed 2021 --regul l1 --lam 1e-3 --lr 0.05 --tol 1e-5 --adjoint True                  
+
