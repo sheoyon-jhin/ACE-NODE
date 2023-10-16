@@ -5,7 +5,7 @@ This study aims to predict more accurately by adding the attention technique to 
 <p align="center">
   <img align="middle" src="./assets/attentive.png" alt="neural_ODE" width="500" height="350" /> 
 </p>
-
+Neural ordinary differential equations (NODEs) presented a new paradigm to construct (continuous-time) neural networks. While showing several good characteristics in terms of the number of parameters and the flexibility in constructing neural networks, they also have a couple of well-known limitations: i) theoretically NODEs learn homeomorphic mapping functions only, and ii) sometimes NODEs show numerical instability in solving integral problems. To handle this, many enhancements have been proposed. To our knowledge, however, integrating attention into NODEs has been overlooked for a while. To this end, we present a novel method of attentive dual co-evolving NODE (ACE-NODE): one main NODE for a downstream machine learning task and the other for providing attention to the main NODE. Our ACE-NODE supports both pairwise and elementwise attention. In our experiments, our method outperforms existing NODE-based and non-NODE-based baselines in almost all cases by non-trivial margins.
 
 # Our Baseline 
 
